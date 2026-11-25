@@ -5,7 +5,7 @@
 </style>
 <header><h1>CrossScale AI</h1><p>從公開資料找出值得追查的生活問題，並比較改善方案。</p></header>
 <main>
-<section><h2>1　確認案例與資料</h2><p><strong>美國 ACP 寬頻補助退場</strong>　觀察家戶上網與線上服務的可近性。</p><p>預設只分析 2024-03-04（含）以前發布的資料。後來的官方公告放在回溯區。</p>
+<section><h2>1　確認案例與資料</h2><p><strong>美國 ACP 寬頻補助退場</strong>　觀察家戶上網與線上服務的可近性。</p><p>預設只分析 2024-03-04（含）以前發布的資料。2024–2026 年的事後資料可在下方追蹤區查看。</p>
 <div id="sources" class="grid"></div>
 <details><summary>新增一筆證據</summary><form id="add"><div class="grid">
 <label>來源名稱<input name="source" required></label><label>原文連結<input name="url" type="url" required></label><label>發布日期<input name="date" type="date" required></label>
@@ -16,7 +16,16 @@
 <section id="report" aria-live="polite"></section>
 <section><h2>3　比較實驗</h2>
 <div id="experiments"></div><button id="blind">下載 E5 盲評材料</button><button id="key" disabled>下載盲評對照表</button><button id="export">下載分析報告</button><p id="exports" role="status"></p></section>
-<section><details><summary>揭曉回溯資料</summary><p>FCC 於 2024-05-31 公告，ACP 於 2024-06-01 結束。這確認補助退場一事。家戶實際斷線率仍需追蹤資料。</p><a href="https://docs.fcc.gov/public/attachments/DOC-402930A1.pdf" target="_blank" rel="noopener">FCC 正式公告</a></details></section>
+<section aria-labelledby="followup">
+<h2 id="followup">2024–2026｜補助退場後的追蹤</h2>
+<p>下列來源均晚於 2024 年 3 月的分析截止日，用於回溯原本的分析。上方 E1、E5 仍以事前資料執行。</p>
+<div class="grid">
+<article><h3>2024｜FCC 確認補助退場</h3><p>FCC 於 5 月 31 日公告，ACP 於 6 月 1 日結束。</p><a href="https://docs.fcc.gov/public/attachments/DOC-402930A1.pdf" target="_blank" rel="noopener noreferrer">查看 FCC 公告</a></article>
+<article><h3>2025｜替代方案的涵蓋限制</h3><p>美國國會研究處（CRS）指出，部分家庭可改用 Lifeline 或業者低價方案，各方案的資格與補助不同，仍有家庭無法銜接。</p><a href="https://www.everycrsreport.com/files/2025-05-13_IF12637_1a70327493a1ae6c6f55196d82e289ba46d4b644.html" target="_blank" rel="noopener noreferrer">查看 CRS 報告（2025-05-13）</a></article>
+<article><h3>2026｜寬頻負擔能力的政策回顧</h3><p>Pew 引用 2024–2025 年研究，回顧退場後家戶降級或停用上網服務的情況，並把長期負擔能力列為州級政策要點。</p><a href="https://www.pew.org/en/research-and-analysis/issue-briefs/2026/10/states-need-broadband-cornerstones-to-strengthen-gains-and-drive-progress" target="_blank" rel="noopener noreferrer">查看 Pew 政策簡報（2026-10-14）</a></article>
+</div>
+<p class="muted">2026 是政策簡報的發布年份。若要比較各年度實際斷線率，還需要同一口徑的家戶追蹤資料。</p>
+</section>
 <details><summary>研究方法與使用範圍</summary><p>這版用可檢查的文字規則比對議題，依獨立來源、尺度及證據筆數排序，原因與方案使用透明的領域規則。支援 ACP 案例的相關觀察。資料卡是人工整理的公開摘要，每張含來源、尺度、日期及群體。</p><p>同一調查的不同群體摘要可以補充尺度資訊，但在獨立來源計數時仍只算一份。跨尺度分析與單一來源比較同時改變可用資訊，無法單獨歸因於尺度。一案且規則依案例設計，應視為流程測試。</p></details>
 </main>
 <script>
