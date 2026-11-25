@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="zh-Hant"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CrossScale AI｜競賽研究原型</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#eff4f2;color:#17322d;font:16px/1.65 system-ui,sans-serif}header{background:#123832;color:#fff;padding:38px max(20px,calc((100vw - 1080px)/2));border-bottom:5px solid #9cdec2}h1{font-size:clamp(2.4rem,7vw,4rem);line-height:1;margin:0 0 12px}h2,h3{line-height:1.3;margin-top:0}main{max-width:1120px;margin:auto;padding:20px}section,article{border:1px solid #c7dbd3;border-radius:14px;padding:18px;margin:14px 0;background:white}article{background:#f6faf8}p{margin:.45em 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:12px}.grid article{margin:0}button,input,textarea,select{font:inherit;color:inherit}button{cursor:pointer;padding:7px 12px;border-radius:7px;border:1px solid #94b4a8;background:white;margin:4px 5px 4px 0}.primary{background:#18634f;color:white}label{display:block;margin:5px 0}input:not([type=checkbox]),select,textarea{width:100%;padding:5px 8px;border:1px solid #94b4a8;border-radius:6px}summary{cursor:pointer;font-weight:bold}a{color:#14604b}small,.muted{color:#4b635a}.result{border-left:5px solid #3b9978}.scroll{overflow:auto}table{border-collapse:collapse;width:100%}th,td{text-align:left;padding:8px;vertical-align:top;border-bottom:1px solid #d8e5df}td input{min-width:74px}.error{color:#a12222}ul{padding-left:22px}
+</style>
+<header><h1>CrossScale AI</h1><p>從公開資料找出值得追查的生活問題，並比較改善方案。</p></header>
+<main>
+<section><h2>1　確認案例與資料</h2><p><strong>美國 ACP 寬頻補助退場</strong>　觀察家戶上網與線上服務的可近性。</p><p>預設只分析 2024-03-04（含）以前發布的資料。後來的官方公告放在回溯區。</p>
+<div id="sources" class="grid"></div>
+<details><summary>新增一筆證據</summary><form id="add"><div class="grid">
+<label>來源名稱<input name="source" required></label><label>原文連結<input name="url" type="url" required></label><label>發布日期<input name="date" type="date" required></label>
+<label>尺度<select name="scale"><option>家戶</option><option>社區</option><option>全國</option></select></label><label>地區或群體<input name="scope" required></label><label>資料期間<input name="period" required></label></div>
+<label>觀察到什麼<textarea name="note" required></textarea></label><button>加入證據</button></form></details>
+<label for="cutoff">分析截止日</label><input type="date" id="cutoff" value="2024-03-04" max="2024-05-30">
+<button class="primary" id="run">開始分析</button><button id="reset">重設公開案例</button><p id="status" role="status"></p></section>
+<section id="report" aria-live="polite"></section>
+<section><h2>3　比較實驗</h2>
+<div id="experiments"></div><button id="blind">下載 E5 盲評材料</button><button id="key" disabled>下載盲評對照表</button><button id="export">下載分析報告</button><p id="exports" role="status"></p></section>
+<section><details><summary>揭曉回溯資料</summary><p>FCC 於 2024-05-31 公告，ACP 於 2024-06-01 結束。這確認補助退場一事。家戶實際斷線率仍需追蹤資料。</p><a href="https://docs.fcc.gov/public/attachments/DOC-402930A1.pdf" target="_blank" rel="noopener">FCC 正式公告</a></details></section>
+<details><summary>研究方法與使用範圍</summary><p>這版用可檢查的文字規則比對議題，依獨立來源、尺度及證據筆數排序，原因與方案使用透明的領域規則。支援 ACP 案例的相關觀察。資料卡是人工整理的公開摘要，每張含來源、尺度、日期及群體。</p><p>同一調查的不同群體摘要可以補充尺度資訊，但在獨立來源計數時仍只算一份。跨尺度分析與單一來源比較同時改變可用資訊，無法單獨歸因於尺度。一案且規則依案例設計，應視為流程測試。</p></details>
+</main>
+<script>
+"use strict";
+const survey="FCC 家戶調查";
+const letter="FCC 致國會函";
+const initial=[
+ {id:"E1",source:survey,url:"https://docs.fcc.gov/public/attachments/DOC-400836A1.pdf",date:"2024-02-29",scale:"家戶",scope:"美國 ACP 調查受訪家戶",period:"2023-12 調查，回顧加入前",note:"68% 受訪家戶在加入補助前上網不穩定或完全沒有網路。在這批網路不穩定或無網路的家戶中，80% 提到費用負擔。"},
+ {id:"E2",source:survey,url:"https://docs.fcc.gov/public/attachments/DOC-400836A1.pdf",date:"2024-02-29",scale:"社區",scope:"美國鄉村及全體受訪家戶",period:"2023-12 調查，回顧加入前",note:"53% 鄉村受訪家戶在加入前沒有網路或只用行動網路，全體受訪家戶為 47%。"},
+ {id:"E3",source:survey,url:"https://docs.fcc.gov/public/attachments/DOC-400836A1.pdf",date:"2024-02-29",scale:"家戶",scope:"美國 ACP 調查受訪家戶",period:"2023-12 調查",note:"77% 受訪者表示若失去補助，可能更換上網方案或停用網路。更換方案也算在內。"},
+ {id:"E4",source:survey,url:"https://docs.fcc.gov/public/attachments/DOC-400836A1.pdf",date:"2024-02-29",scale:"家戶",scope:"美國 ACP 調查受訪家戶",period:"2023-12 調查",note:"72% 受訪者透過受補助網路預約或參與醫療服務。"},
+ {id:"E5",source:letter,url:"https://docs.fcc.gov/public/attachments/DOC-400888A1.pdf",date:"2024-03-04",scale:"全國",scope:"美國 ACP 計畫",period:"2024-03 行政公告",note:"FCC 說明國會未追加經費，4 月會是最後一個全額補助月，5 月可能提供部分補助。"}
+];
+const rules=[
+ {title:"補助退場可能讓部分家庭難以維持上網",all:[/上網|網路/,/補助|費用|負擔/],extra:/經費.*補助|補助.*經費/,why:"家戶經驗顯示上網仰賴負擔能力，政策資料顯示補助可能縮減。兩者指向值得追蹤的上網持續性風險。"},
+ {title:"鄉村家庭可能更依賴行動網路",all:[/鄉村/,/行動網路|沒有網路/],why:"同一調查的不同群體出現接取方式差異，值得查各地替代網路供給。"},
+ {title:"上網受影響的家庭可能較難使用線上醫療服務",all:[/醫療/,/網路|上網/],extra:/停用網路|上網不穩定/,why:"家戶同時回報醫療用途及網路中斷風險，但缺少個別家戶的交叉資料。"}
+];
+const options=[
+ ["短期補助銜接","過渡期間降低每月帳單","高，需新增財源","需政策授權","現有補助家庭","期限屆滿仍可能出現費用落差"],
+ ["協助轉入既有低價方案","協助查資格並轉介申請","中，需外展人力","取決於資格與供應商","符合既有方案資格者","可能漏接資格不符的家庭"],
+ ["提供公共上網與線上服務協助","透過圖書館或社區據點提供替代管道","中，需場地、人力與設備","可由地方小規模試行","能抵達據點且需要協助者","通勤與開放時段可能限制使用"]
+];
+const $=id=>document.getElementById(id);
+let rows=structuredClone(initial),latest=null,blindKey=null;
+function el(parent,tag,value){
+ const node=document.createElement(tag);
+ if(value!==undefined)node.textContent=value;
+ parent.append(node);
+ return node;
+}
+function drawSources(){
+ const root=$("sources");root.replaceChildren();
+ for(const item of rows){
+  const card=el(root,"article");
+  el(card,"strong",item.id+" · "+item.scale+" · "+item.source);
+  el(card,"p",item.note);
+  el(card,"small",item.scope+"｜"+item.period+"｜發布 "+item.date);
+  const links=el(card,"p"),a=el(links,"a","查看來源");
+  a.href=item.url;a.target="_blank";a.rel="noopener";
+  if(!initial.some(e=>e.id===item.id)){
+   const remove=el(card,"button","移除");remove.onclick=()=>{rows=rows.filter(e=>e.id!==item.id);drawSources();run();};
+  }
+ }
+}
+function discover(records){
+ return rules.map(rule=>{
+  const direct=records.filter(e=>rule.all.every(pattern=>pattern.test(e.note)));
+  const evidence=direct.length?records.filter(e=>direct.includes(e)||rule.extra?.test(e.note)):[];
+  const scales=new Set(evidence.map(e=>e.scale)).size;
+  const sources=new Set(evidence.map(e=>e.url)).size;
+  return {...rule,evidence,scales,sources,score:2*sources+scales+Math.log1p(evidence.length)};
+ }).filter(c=>c.evidence.length).sort((a,b)=>b.score-a.score);
+}
+function build(records,linked){
+ const candidates=discover(records);
+ const concerns=candidates.find(c=>c.title===rules[0].title);
+ const visible=linked?(concerns?.evidence??[]):records;
+ const ids=pattern=>visible.filter(e=>pattern.test(e.note)).map(e=>e.id);
+ const support=ids(/費用負擔|最後一個全額補助月/);
+ const counter=ids(/更換方案|只用行動網路/);
+ const ready=!!(concerns&&concerns.sources>=2&&concerns.scales>=2&&support.length>=2);
+ const hypothesis={claim:"補助縮減可能使依賴補助的部分家庭難以負擔原有網路。",support,counter,
+ limit:"更換方案或使用行動網路都可能維持部分服務。現有資料無法排除所在地供給、設備和數位技能的影響。",
+ missing:"需取得退場後的實際停用、方案更換與費用資料，並依地區與家戶資格比較。"};
+ return {candidates,hypothesis,ready,plans:options.map(row=>({row,evidence:linked&&ready?support:[],status:linked&&!ready?"證據不足 · 探索性方案":"探索性方案"}))};
+}
+function candidateLines(model){
+ return model.candidates.map(c=>c.title+"（"+c.sources+" 來源／"+c.scales+" 尺度；"+c.evidence.map(e=>e.id).join("、")+"）");
+}
+function table(root,headers){
+ const t=el(el(root,"div"),"table");t.parentNode.className="scroll";
+ const head=el(el(t,"thead"),"tr");
+ headers.forEach(title=>el(head,"th",title).scope="col");
+ return el(t,"tbody");
+}
+function addRow(body,values){
+ const row=el(body,"tr");return values.map(v=>el(row,"td",v));
+}
+function renderReport(model){
+ const root=$("report");root.replaceChildren();
+ el(root,"h2","2　問題探索與決策報告");
+ el(root,"h3","發現問題");
+ if(!model.candidates.length)el(root,"p","證據不足，目前沒有符合規則的候選。");
+ for(const c of model.candidates){
+  const box=el(root,"article");box.className="result";
+  el(box,"strong",c.title);el(box,"p",c.why);
+  el(box,"small",c.sources+" 份來源／"+c.scales+" 個尺度｜證據 "+c.evidence.map(e=>e.id).join("、"));
+ }
+ const h=model.hypothesis;
+ el(root,"h3","推理可能成因");
+ el(root,"p",model.ready?h.claim:"證據不足，需要人工確認。以下方案可供探索。");
+ el(root,"p","支持線索 "+(h.support.join("、")||"尚缺"));
+ el(root,"p","限制與替代解釋（"+(h.counter.join("、")||"尚缺")+"）　"+h.limit);
+ el(root,"p","待補資料　"+h.missing);
+ el(root,"h3","比較可採取的方案");
+ const plans=table(root,["方案","對應作法","成本","可行性","受益群體","限制","證據狀態"]);
+ model.plans.forEach(plan=>addRow(plans,[...plan.row,plan.status+(plan.evidence.length?"｜"+plan.evidence.join("、"):"")]));
+ el(root,"h3","試算方案效果");
+ el(root,"p","示範以每 100 戶計算，請自行設定分析期間與基準。表內數字可修改，預填值純供操作練習。模型假設受覆蓋家庭與整體的基準風險相同。");
+ const body=table(root,["情境","觸及 %","觸及後相對風險降低 %","預計受影響戶數／100 戶"]);
+ const [,baselineCell,,baseOutput]=addRow(body,["維持現況（填基準受影響率 %）","","",""]);
+ function input(cell,value,label){
+  const n=el(cell,"input");n.type="number";n.min="0";n.max="100";n.step="any";n.value=value;n.required=true;n.setAttribute("aria-label",label);return n;
+ }
+ const baseline=input(baselineCell,30,"基準受影響率");
+ const cases=options.map(([name],i)=>{
+  const [,a,b,out]=addRow(body,[name,"","",""]);
+  return {name,coverage:input(a,[60,40,30][i],name+"觸及率"),efficacy:input(b,[40,30,20][i],name+"相對風險降低"),out};
+ });
+ const display=el(root,"p");
+ function update(){
+  baseOutput.textContent=baseline.validity.valid?Number(baseline.value).toFixed(1):"請輸入 0–100";
+  const results=cases.map(({name,coverage,efficacy,out})=>{
+   const valid=[baseline,coverage,efficacy].every(n=>n.validity.valid);
+   const expected=valid?estimate(Number(baseline.value),Number(coverage.value),Number(efficacy.value)):null;
+   out.textContent=valid?expected.toFixed(1):"請輸入 0–100";
+   return {name,coverage:coverage.value,efficacy:efficacy.value,expected};
+  });
+  const ranked=results.filter(x=>x.expected!==null).sort((a,b)=>a.expected-b.expected);
+  display.textContent=ranked.length===results.length?"依目前試算戶數排序　"+ranked.map(x=>x.name).join(" → "):"資料填完整後會顯示排序。";
+  latest.scenario={baseline:baseline.value,results};
+ }
+ [baseline,...cases.flatMap(x=>[x.coverage,x.efficacy])].forEach(n=>n.oninput=update);
+ update();
+}
+function estimate(base,coverage,efficacy){return base*(1-coverage*efficacy/10000);}
+function run(){
+ const cutoff=$("cutoff");
+ if(!cutoff.value||!cutoff.validity.valid){$("status").textContent="請選擇有效截止日（最晚為 2024-05-30）。";return;}
+ const records=rows.filter(e=>e.date<=cutoff.value);
+ const single=records.filter(e=>e.source===survey&&e.scale==="家戶");
+ const linked=build(records,true),independent=build(records,false);
+ latest={cutoff:cutoff.value,records,single,linked,independent};
+ $("status").textContent="已納入 "+records.length+" 筆證據，排除截止日後的 "+(rows.length-records.length)+" 筆。";
+ $("key").disabled=true;blindKey=null;$("exports").textContent="";
+ renderReport(linked);
+ const root=$("experiments");root.replaceChildren();
+ el(root,"h3","E1　單一來源家戶資料與跨尺度資料");
+ el(root,"p","使用同一套判定規則。候選數是程式輸出，是否有效需由評閱者查證。");
+ const t=table(root,["組別","資料筆數","候選問題"]);
+ addRow(t,["單一來源／家戶",single.length,candidateLines({candidates:discover(single)}).join("；")||"無"]);
+ addRow(t,["跨尺度",records.length,candidateLines(linked).join("；")||"無"]);
+ el(root,"h3","E5　階段獨立與串接的可追溯性");
+ el(root,"p","兩組使用相同資料與方案集。獨立組各階段直接讀原始資料，串接組以入選問題的證據推理，並把證據識別碼傳給方案。兩組共用相同試算假設。下載材料可交由組員評分。");
+}
+function reportText(model){
+ const h=model.hypothesis;
+ return ["問題候選",...candidateLines(model),"","成因假設",model.ready?h.claim:"證據不足，需人工確認。","支持："+(h.support.join("、")||"尚缺"),
+ "限制："+h.limit,"反向線索："+(h.counter.join("、")||"尚缺"),"待補："+h.missing,"","方案比較",
+ ...model.plans.map(p=>p.row.join("｜")+"｜"+p.status+"｜證據 "+(p.evidence.join("、")||"—")),
+ "","試算結果（假設值，每 100 戶）","維持現況："+latest.scenario.baseline+"%",
+ ...latest.scenario.results.map(r=>r.name+"｜觸及 "+r.coverage+"%｜相對降低 "+r.efficacy+"%｜預計 "+(r.expected===null?"待填":r.expected.toFixed(1))+" 戶")].join("\n");
+}
+function citations(){return latest.records.map(e=>[e.id,e.source,e.date,e.scale,e.scope,e.period,e.note,e.url].join("｜")).join("\n");}
+function download(name,value){
+ const url=URL.createObjectURL(new Blob(["\ufeff",value],{type:"text/plain;charset=utf-8"}));
+ const link=document.createElement("a");link.href=url;link.download=name;link.click();setTimeout(()=>URL.revokeObjectURL(url),3000);
+ $("exports").textContent="已送出下載　"+name;
+}
+$("export").onclick=()=>download("CrossScale_Report.txt","分析截止 "+latest.cutoff+"\n\n"+reportText(latest.linked)+"\n\nE1 單一組\n"+candidateLines({candidates:discover(latest.single)}).join("\n")+"\n\n證據\n"+citations());
+$("blind").onclick=()=>{
+ const first=Math.random()<.5;
+ const models=first?[latest.linked,latest.independent]:[latest.independent,latest.linked];
+ blindKey=first?"A＝串接；B＝獨立":"A＝獨立；B＝串接";
+ download("CrossScale_E5_Blind.txt","請分別為 A／B 的證據完整度、推理合理性及方案可行性各給 0–2 分。0＝缺少，1＝部分符合，2＝具體且能查核。填寫理由後再開啟對照表。\n\n"+models.map((m,i)=>["A","B"][i]+"\n"+reportText(m)).join("\n\n")+"\n\n證據\n"+citations());
+ $("key").disabled=false;
+};
+$("key").onclick=()=>download("CrossScale_E5_Key.txt",blindKey);
+$("add").onsubmit=event=>{
+ event.preventDefault();
+ const form=event.currentTarget;
+ const entry=Object.fromEntries([...new FormData(form)].map(([k,v])=>[k,v.trim()]));
+ if(Object.values(entry).some(v=>!v)||!/^https?:\/\//i.test(entry.url)){$("status").textContent="請填寫所有欄位，並提供 HTTP 或 HTTPS 連結。";return;}
+ if(rows.some(e=>e.url===entry.url&&e.note===entry.note)){$("status").textContent="相同來源與摘要已存在。";return;}
+ entry.id="自訂-"+Date.now();rows.push(entry);form.reset();drawSources();run();
+};
+$("reset").onclick=()=>{rows=structuredClone(initial);$("cutoff").value="2024-03-04";drawSources();run();};
+$("run").onclick=run;
+drawSources();run();
+</script>
+</html>
