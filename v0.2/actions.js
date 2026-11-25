@@ -7,6 +7,7 @@ function failForm(t){const el=$('#form-error');if(el)el.innerHTML=`<div class="a
 const actions={
  'close-dialog':()=>closeModal(),
  'case-edit':()=>caseForm(),
+ 'case-new':()=>{state.caseLibrary||={};if(state.case.configured!==false)state.caseLibrary[state.case.id]=E.caseWorkspace(state);Object.assign(state,E.caseWorkspace(E.emptySeed()));selectedBM='';log('開始新案件',{retainedCases:Object.keys(state.caseLibrary)});renderAll();switchView('overview');caseForm();},
  'run':()=>{const r=E.snapshot(state);state.runs.push(r);log('執行跨尺度探索',{runId:r.id,problemIds:r.problems.map(p=>p.id),evidenceIds:E.enabled(state).map(e=>e.id),cutoff:state.case.cutoff});renderAll();toast('已保存分析快照與研究紀錄。');},
  'summary-export':()=>{download('CrossScale-v0.2-研究摘要.html',summaryHTML(),'text/html;charset=utf-8');log('匯出研究摘要',{caseId:state.case.id});},
  'project-export':()=>{download('CrossScale-v0.2-研究專案.json',state);toast('已匯出專案，包含完整快照、評分理由與操作紀錄。');},
@@ -62,7 +63,7 @@ document.addEventListener('change',event=>{const el=event.target;try{if(el.datas
 document.addEventListener('input',event=>{if(event.target.id==='evidence-search'){filters.search=event.target.value;renderEvidenceTable();}if(event.target.id==='period-filter'){filters.period=event.target.value;renderEvidenceTable();}});
 document.addEventListener('submit',event=>{event.preventDefault();const f=event.target,v=Object.fromEntries(new FormData(f));for(const k of Object.keys(v))if(typeof v[k]==='string')v[k]=v[k].trim();try{
  if(f.getAttribute('id')==='scenario-form'){saveScenario(f);toast('已依目前參數更新 L1 情境。');return;}
- if(f.getAttribute('id')==='case-form'){state.case={...state.case,...v};log('修改案例設定',state.case);}
+ if(f.getAttribute('id')==='case-form'){if(!f.reportValidity())return;state.case={...state.case,...v,configured:true};log('修改案例設定',state.case);}
  else if(f.getAttribute('id')==='evidence-form'){const old=state.evidence.find(e=>e.id===f.dataset.id);const e={...v,before:Number(v.before),after:Number(v.after),parentIds:splitIds(v.parentIds),enabled:old?.enabled??true};const ss=E.clone(state);if(old)ss.evidence[ss.evidence.findIndex(x=>x.id===old.id)]=e;else ss.evidence.push(e);const errs=E.validate(ss);if(errs.length)return failForm(errs.join('；'));state.evidence=ss.evidence;log(old?'編輯證據':'新增證據',{before:old||null,after:e});}
  else if(f.getAttribute('id')==='quality-form'){const q={evaluator:v.evaluator,at:E.now(),type:'MODEL_OUTPUT',method:'人工評分',biasReview:v.biasReview};for(let i=0;i<E.QUALITY.length;i++){if(!v['r'+i]||!Number.isInteger(Number(v['q'+i])))return failForm('每項分數須為整數且附上理由。');q[E.QUALITY[i]]={score:Number(v['q'+i]),reason:v['r'+i]};}state.quality[f.dataset.id]=q;log('人工問題品質評分',{problemId:f.dataset.id,assessment:q});}
  else if(f.getAttribute('id')==='hypothesis-notes-form'){state.hypothesisNotes||={};state.hypothesisNotes[f.dataset.id]=v.notes;log('整理替代解釋與註記',{hypothesisId:f.dataset.id,notes:v.notes});}
