@@ -27,7 +27,7 @@ function lookup(rows,m){return rows.find(x=>x.metric===m);}
 function realLineage(rows,id,seen=new Set()){if(seen.has(id))return false;seen.add(id);const e=rows.find(x=>x.id===id);if(!e||e.quality==='低')return false;if(e.type==='REAL')return true;return e.type==='DERIVED'&&e.parentIds.length>0&&e.parentIds.every(p=>realLineage(rows,p,new Set(seen)));}
 function controlsConsistent(b){return b.config.mode!=='外部輸出比較'||['A','B','C'].every(m=>b.outputs[m]&&b.outputs[m].analyzer===b.config.analyzer&&Number.isFinite(b.outputs[m].minutes)&&b.outputs[m].minutes<=Number(b.config.timeLimit));}
 const refs=a=>a.filter(Boolean).map(x=>x.id);
-function conflicts(rows){const groups=new Map();for(const e of rows){const key=[e.metric,e.period,e.geography,e.population,e.unit].join('|');if(!groups.has(key))groups.set(key,[]);groups.get(key).push(e);}return [...groups.values()].filter(g=>g.length>1&&g.some(e=>e.before!==g[0].before||e.after!==g[0].after)).map(g=>g.map(e=>e.id));}
+function conflicts(rows){const groups=new Map();for(const e of rows){const key=[e.metric==='custom'?e.definition:e.metric,e.period,e.geography,e.population,e.unit].join('|');if(!groups.has(key))groups.set(key,[]);groups.get(key).push(e);}return [...groups.values()].filter(g=>g.length>1&&g.some(e=>e.before!==g[0].before||e.after!==g[0].after)).map(g=>g.map(e=>e.id));}
 function discover(s,rows=enabled(s),method='C'){const rule=ruleDiscover(s,rows,method);const r=method==='C'&&root.AIResearch.current(api,s);return r?[...r.accepted.problems.map(p=>({...p,status:s.problemStates[p.id]||'待驗證'})),...rule]:rule;}
 function ruleDiscover(s,rows=enabled(s),method='C'){
  if(isTaiwan(s))return root.TWDemo.discover(s,rows,method);const get=m=>lookup(rows,m),t=get('travel'),v=get('visits'),d=get('demand'),dig=get('digital'),bar=get('digital_barrier'),w=get('wait'),cap=get('capacity');
@@ -123,3 +123,4 @@ function snapshot(s){return {id:uid('RUN'),at:now(),version:VERSION,case:clone(s
 const api={emptySeed,SCALES,isTaiwan,taiwanSeed,researchCases,formatChange,VERSION,TYPES,STATES,CRITERIA,QUALITY,RUBRIC,METRICS,clone,now,uid,seed,event,enabled,change,lookup,discover,hypotheses,gates,overclaim,solutions,proposedSolutions,simulate,createBenchmark,methodOutput,scoresComplete,completeEvaluators,comparable,pairedComparisons,averages,errorTests,inspect,conflicts,validate,usedIn,snapshot,fingerprint,realLineage,controlsConsistent,caseTemplates,caseWorkspace};
 root.CS=api;if(typeof module!=='undefined')module.exports=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
+
