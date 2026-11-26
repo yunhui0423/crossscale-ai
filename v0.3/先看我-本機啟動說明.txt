@@ -1,0 +1,17 @@
+CrossScale AI Windows 本機啟動包
+
+1. 請先對 ZIP 按「全部解壓縮」。不要直接在 ZIP 裡執行。
+2. 雙擊解壓後的 Start-CrossScale.cmd。
+3. 黑色視窗出現 READY，才代表你的電腦已啟動服務；之後會開啟 Edge。
+
+使用網站時請保持黑色視窗開啟。
+若出現 STARTUP FAILED，請傳這個黑色視窗的錯誤文字或截圖。
+
+需要你這台電腦已安裝 Node.js 與 Ollama。
+Node.js：https://nodejs.org/
+Ollama：https://ollama.com/
+沒有本機模型時，可在終端機執行：ollama pull qwen3:0.6b
+
+這個啟動工具不會關閉防火牆、不改安全原則、不自動安裝軟體。
+服務只監聽 127.0.0.1，其他人的電腦無法共用。
+PDF 抽取另需 Python 與 pypdf；不影響網站及 Ollama 的基本連線。
